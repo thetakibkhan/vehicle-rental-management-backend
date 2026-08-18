@@ -1,6 +1,6 @@
 # Vehicle Rental Management Backend
 
-Epic 0 foundation for the company-provided vehicle rental REST API assignment. The project uses Node.js, TypeScript, Express, Knex, and PostgreSQL with strict environment validation, reproducible migrations, and representative development seeds.
+Epic 0 foundation and Epic 1 staff authentication for the company-provided vehicle rental REST API assignment. The project uses Node.js, TypeScript, Express, Knex, and PostgreSQL with strict environment validation, reproducible migrations, and representative development seeds.
 The company-provided instructions and private planning materials are intentionally excluded from this public repository.
 
 ## Requirements
@@ -54,7 +54,7 @@ The company-provided instructions and private planning materials are intentional
    }
    ```
 
-Authentication, vehicle, rental, and report endpoints belong to later epics and are not part of this foundation milestone.
+POST http://localhost:3000/auth/login accepts the seeded staff email and password and returns a one-hour Bearer JWT. Vehicle, rental, and report endpoints belong to later epics.
 
 ## Configuration
 
@@ -69,7 +69,7 @@ Authentication, vehicle, rental, and report endpoints belong to later epics and 
 | `DB_PASSWORD`         | Yes       | Database password                                                        |
 | `DB_POOL_MIN`         | No        | Minimum Knex pool size; defaults to `2`                                  |
 | `DB_POOL_MAX`         | No        | Maximum Knex pool size; defaults to `10` and cannot be below the minimum |
-| `JWT_SECRET`          | Yes       | Signing secret reserved for Epic 1; minimum 32 characters                |
+| `JWT_SECRET`          | Yes       | HS256 JWT signing secret for staff authentication; minimum 32 characters |
 | `UPLOAD_PATH`         | Yes       | Local vehicle-photo directory reserved for Epic 2                        |
 | `SEED_STAFF_NAME`     | For seeds | Demo staff name                                                          |
 | `SEED_STAFF_EMAIL`    | For seeds | Demo staff login email                                                   |
@@ -102,6 +102,7 @@ The seed command refuses to run when `NODE_ENV=production`.
 src/
   common/errors/       Central application errors and Express error handling
   config/              Validated application and seed configuration
+  auth/                Login, JWT, authentication middleware, and rate limiting
   db/
     migrations/        Ordered Knex schema migrations
     scripts/           Connection, migration, rollback, and seed commands
@@ -111,7 +112,7 @@ src/
 tests/                 Unit and database integration tests
 ```
 
-Feature modules for auth, vehicles, rentals, and reports will be added under `src/modules/` by their respective epics.
+Vehicle, rental, and report modules will be added in their respective epics.
 
 ## Commands
 

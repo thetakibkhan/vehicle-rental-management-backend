@@ -1,6 +1,10 @@
 import express, { type Express, type Request, type Response } from 'express'
 
+import { createAuthRouter } from './auth/auth-router.js'
+import type { AuthRouterDependencies } from './auth/auth-router.js'
 import { errorHandler, notFoundHandler } from './common/errors/error-handler.js'
+import { createVehicleRouter } from './vehicles/vehicle-router.js'
+import type { VehicleRouterDependencies } from './vehicles/vehicle-router.js'
 
 interface HealthResponse {
   success: true
@@ -9,7 +13,12 @@ interface HealthResponse {
   }
 }
 
-export function createApp(): Express {
+export interface AppDependencies {
+  auth?: AuthRouterDependencies
+  vehicles?: VehicleRouterDependencies
+}
+
+export function createApp(dependencies: AppDependencies = {}): Express {
   const app = express()
 
   app.disable('x-powered-by')
@@ -25,6 +34,14 @@ export function createApp(): Express {
       })
     },
   )
+
+  if (dependencies.auth !== undefined) {
+    app.use('/auth', createAuthRouter(dependencies.auth))
+  }
+
+  if (dependencies.vehicles !== undefined) {
+    app.use('/vehicles', createVehicleRouter(dependencies.vehicles))
+  }
 
   app.use(notFoundHandler)
   app.use(errorHandler)
