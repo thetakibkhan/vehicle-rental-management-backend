@@ -1,0 +1,6 @@
+coverage/
+dist/
+node_modules/
+uploads/
+package-lock.json
+docs/PRD*.md
