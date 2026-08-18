@@ -11,6 +11,8 @@ import { createDatabaseClient } from './db/client.js'
 import { KnexVehicleRepository } from './vehicles/knex-vehicle-repository.js'
 import { PhotoStorage } from './vehicles/photo-storage.js'
 import { VehicleService } from './vehicles/vehicle-service.js'
+import { KnexRentalRepository } from './rentals/knex-rental-repository.js'
+import { RentalService } from './rentals/rental-service.js'
 
 const config = loadEnvironment()
 const database = createDatabaseClient(config)
@@ -24,6 +26,10 @@ const vehicleService = new VehicleService(
   new KnexVehicleRepository(database),
   new PhotoStorage(config.uploadPath),
 )
+const rentalService = new RentalService(
+  database,
+  new KnexRentalRepository(database),
+)
 const loginRateLimiter = new LoginRateLimiter()
 
 async function startServer(): Promise<Server> {
@@ -32,6 +38,7 @@ async function startServer(): Promise<Server> {
   return createApp({
     auth: { authService, loginRateLimiter },
     vehicles: { vehicleService, tokenService },
+    rentals: { rentalService, tokenService },
   }).listen(config.port, () => {
     process.stdout.write(
       'Server listening on port ' + String(config.port) + '\n',

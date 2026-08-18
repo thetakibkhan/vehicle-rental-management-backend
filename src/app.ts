@@ -5,6 +5,8 @@ import type { AuthRouterDependencies } from './auth/auth-router.js'
 import { errorHandler, notFoundHandler } from './common/errors/error-handler.js'
 import { createVehicleRouter } from './vehicles/vehicle-router.js'
 import type { VehicleRouterDependencies } from './vehicles/vehicle-router.js'
+import { createRentalRouter } from './rentals/rental-router.js'
+import type { RentalRouterDependencies } from './rentals/rental-router.js'
 
 interface HealthResponse {
   success: true
@@ -16,6 +18,7 @@ interface HealthResponse {
 export interface AppDependencies {
   auth?: AuthRouterDependencies
   vehicles?: VehicleRouterDependencies
+  rentals?: RentalRouterDependencies
 }
 
 export function createApp(dependencies: AppDependencies = {}): Express {
@@ -41,6 +44,10 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   if (dependencies.vehicles !== undefined) {
     app.use('/vehicles', createVehicleRouter(dependencies.vehicles))
+  }
+
+  if (dependencies.rentals !== undefined) {
+    app.use('/rentals', createRentalRouter(dependencies.rentals))
   }
 
   app.use(notFoundHandler)
