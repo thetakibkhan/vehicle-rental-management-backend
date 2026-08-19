@@ -13,6 +13,8 @@ import { PhotoStorage } from './vehicles/photo-storage.js'
 import { VehicleService } from './vehicles/vehicle-service.js'
 import { KnexRentalRepository } from './rentals/knex-rental-repository.js'
 import { RentalService } from './rentals/rental-service.js'
+import { KnexReportRepository } from './reports/knex-report-repository.js'
+import { ReportService } from './reports/report-service.js'
 
 const config = loadEnvironment()
 const database = createDatabaseClient(config)
@@ -30,6 +32,7 @@ const rentalService = new RentalService(
   database,
   new KnexRentalRepository(database),
 )
+const reportService = new ReportService(new KnexReportRepository(database))
 const loginRateLimiter = new LoginRateLimiter()
 
 async function startServer(): Promise<Server> {
@@ -39,6 +42,7 @@ async function startServer(): Promise<Server> {
     auth: { authService, loginRateLimiter },
     vehicles: { vehicleService, tokenService },
     rentals: { rentalService, tokenService },
+    reports: { reportService, tokenService },
   }).listen(config.port, () => {
     process.stdout.write(
       'Server listening on port ' + String(config.port) + '\n',
