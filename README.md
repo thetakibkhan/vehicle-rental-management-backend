@@ -1,13 +1,14 @@
 # Vehicle Rental Management Backend
 
-Epic 0 foundation and Epic 1 staff authentication for the company-provided vehicle rental REST API assignment. The project uses Node.js, TypeScript, Express, Knex, and PostgreSQL with strict environment validation, reproducible migrations, and representative development seeds.
-The company-provided instructions and private planning materials are intentionally excluded from this public repository.
+A complete Node.js and TypeScript REST API for the company-provided vehicle rental assignment. It uses Express, Knex, PostgreSQL, Joi, JWT authentication, and local photo storage.
+
+The company instructions and private planning documents are intentionally excluded from this public repository.
 
 ## Requirements
 
 - Node.js 24 LTS
 - npm
-- PostgreSQL 18, either installed locally or started through Docker Compose
+- PostgreSQL 18, installed locally or started through Docker Compose
 
 ## Quick start
 
@@ -23,15 +24,15 @@ The company-provided instructions and private planning materials are intentional
    cp .env.example .env
    ```
 
-   Replace the example database password, JWT secret, and seed password before continuing. The JWT secret must contain at least 32 characters and the seed password at least 12.
+   Set a local database password, a JWT secret of at least 32 characters, and a seed password of at least 12 characters.
 
-3. Start PostgreSQL using either an existing local server or the optional container:
+3. Start PostgreSQL:
 
    ```bash
    docker compose up -d
    ```
 
-4. Verify the database connection, build the schema, and load demo data:
+4. Build the schema and load demo data:
 
    ```bash
    npm run db:check
@@ -39,105 +40,70 @@ The company-provided instructions and private planning materials are intentional
    npm run db:seed
    ```
 
-5. Start the API in development mode:
+5. Start the API:
 
    ```bash
    npm run dev
    ```
 
-   `GET http://localhost:3000/health` should return:
+   `GET http://localhost:3000/health` confirms the API is running.
 
-   ```json
-   {
-     "success": true,
-     "data": { "status": "ok" }
-   }
-   ```
+## Authentication
 
-POST http://localhost:3000/auth/login accepts the seeded staff email and password and returns a one-hour Bearer JWT. Vehicle, rental, and report endpoints belong to later epics.
+`POST /auth/login` accepts the seeded staff email and password and returns a one-hour JWT. Send it on every vehicle, rental, and report request:
+
+```text
+Authorization: Bearer <token>
+```
+
+## API endpoints
+
+| Method           | Endpoint                                     | Notes                                                                        |
+| ---------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
+| POST             | `/auth/login`                                | Staff login                                                                  |
+| GET, POST        | `/vehicles`                                  | List or create a vehicle; POST uses multipart form-data and optional `photo` |
+| GET, PUT, DELETE | `/vehicles/:id`                              | Retrieve, update, or soft-delete a vehicle                                   |
+| GET              | `/vehicles/:id/photo`                        | Authenticated photo download                                                 |
+| GET, POST        | `/rentals`                                   | List or create a rental                                                      |
+| GET, PUT, DELETE | `/rentals/:id`                               | Retrieve, update, or hard-delete a rental                                    |
+| GET              | `/reports/rentals?month=YYYY-MM&vehicle_id=` | Monthly report; `vehicle_id` is optional                                     |
+
+Rental create/update bodies use `vehicle_id`, `customer_name`, `customer_phone`, `start_date`, `end_date`, and optional `status`. The backend always calculates `total_amount`.
 
 ## Configuration
 
-| Variable              | Required  | Purpose                                                                  |
-| --------------------- | --------- | ------------------------------------------------------------------------ |
-| `NODE_ENV`            | No        | `development`, `test`, or `production`; defaults to `development`        |
-| `PORT`                | No        | HTTP port; defaults to `3000`                                            |
-| `DB_HOST`             | Yes       | PostgreSQL hostname                                                      |
-| `DB_PORT`             | No        | PostgreSQL port; defaults to `5432`                                      |
-| `DB_NAME`             | Yes       | Database name                                                            |
-| `DB_USER`             | Yes       | Database user                                                            |
-| `DB_PASSWORD`         | Yes       | Database password                                                        |
-| `DB_POOL_MIN`         | No        | Minimum Knex pool size; defaults to `2`                                  |
-| `DB_POOL_MAX`         | No        | Maximum Knex pool size; defaults to `10` and cannot be below the minimum |
-| `JWT_SECRET`          | Yes       | HS256 JWT signing secret for staff authentication; minimum 32 characters |
-| `UPLOAD_PATH`         | Yes       | Local vehicle-photo directory reserved for Epic 2                        |
-| `SEED_STAFF_NAME`     | For seeds | Demo staff name                                                          |
-| `SEED_STAFF_EMAIL`    | For seeds | Demo staff login email                                                   |
-| `SEED_STAFF_PASSWORD` | For seeds | Demo staff password, hashed with bcrypt before insertion                 |
+| Variable                                                     | Required  | Purpose                                                           |
+| ------------------------------------------------------------ | --------- | ----------------------------------------------------------------- |
+| `NODE_ENV`                                                   | No        | `development`, `test`, or `production`; defaults to `development` |
+| `PORT`                                                       | No        | HTTP port; defaults to `3000`                                     |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`    | Yes       | PostgreSQL connection values                                      |
+| `DB_POOL_MIN`, `DB_POOL_MAX`                                 | No        | Knex connection-pool bounds                                       |
+| `JWT_SECRET`                                                 | Yes       | HS256 JWT signing secret, at least 32 characters                  |
+| `UPLOAD_PATH`                                                | Yes       | Local vehicle-photo directory                                     |
+| `SEED_STAFF_NAME`, `SEED_STAFF_EMAIL`, `SEED_STAFF_PASSWORD` | For seeds | Demo staff account values                                         |
 
-Environment values are validated with Joi at startup. Invalid configuration fails immediately without printing secret values.
+Environment values are validated at startup without printing secret values.
 
-## Database
+## Database and reporting
 
-Migrations create the required tables in dependency order:
+Migrations create `staff`, `vehicles`, and `rentals` in dependency order. The repeatable seed creates a staff account, two vehicles, a month-boundary rental (July 29 to August 3), and a same-day rental.
 
-1. `staff`
-2. `vehicles`
-3. `rentals`
-
-The schema enforces required and unique fields, rental status values, non-negative monetary values, valid date ordering, and vehicle foreign-key integrity. Vehicles are intended to be removed through the `deleted_at` soft-delete field; physical deletion is restricted when rental history exists.
-
-The development seeds are repeatable and create:
-
-- one bcrypt-hashed staff account using the `SEED_STAFF_*` variables;
-- a sedan and a microbus;
-- a completed rental from July 29 through August 3 for month-boundary reporting;
-- a same-day booked rental.
-
-The seed command refuses to run when `NODE_ENV=production`.
-
-## Project structure
-
-```text
-src/
-  common/errors/       Central application errors and Express error handling
-  config/              Validated application and seed configuration
-  auth/                Login, JWT, authentication middleware, and rate limiting
-  db/
-    migrations/        Ordered Knex schema migrations
-    scripts/           Connection, migration, rollback, and seed commands
-    seeds/             Repeatable development seed data
-  app.ts               Express application composition
-  server.ts            Database-aware process entry point
-tests/                 Unit and database integration tests
-```
-
-Vehicle, rental, and report modules will be added in their respective epics.
+The monthly report clips each rental to the selected month and prorates its stored historical total. Cancelled rentals do not contribute to totals.
 
 ## Commands
 
-| Command                | Purpose                                             |
-| ---------------------- | --------------------------------------------------- |
-| `npm run dev`          | Run the server with TypeScript watch mode           |
-| `npm run build`        | Compile production JavaScript to `dist/`            |
-| `npm start`            | Run the compiled server                             |
-| `npm run typecheck`    | Run strict TypeScript checks without emitting files |
-| `npm run lint`         | Run ESLint                                          |
-| `npm run format`       | Format project files with Prettier                  |
-| `npm run format:check` | Check formatting without changes                    |
-| `npm test`             | Run the test suite once                             |
-| `npm run db:check`     | Verify PostgreSQL connectivity                      |
-| `npm run db:migrate`   | Apply pending migrations                            |
-| `npm run db:rollback`  | Roll back the latest migration batch                |
-| `npm run db:seed`      | Reload non-production demo data                     |
+| Command                | Purpose                               |
+| ---------------------- | ------------------------------------- |
+| `npm run dev`          | Run the TypeScript development server |
+| `npm run build`        | Compile to `dist/`                    |
+| `npm start`            | Run compiled code                     |
+| `npm run typecheck`    | Run strict TypeScript checks          |
+| `npm run lint`         | Run ESLint                            |
+| `npm run format:check` | Check Prettier formatting             |
+| `npm test`             | Run tests                             |
+| `npm run db:check`     | Verify PostgreSQL connectivity        |
+| `npm run db:migrate`   | Apply migrations                      |
+| `npm run db:rollback`  | Roll back the latest migration batch  |
+| `npm run db:seed`      | Reload non-production demo data       |
 
-## Fresh database verification
-
-To demonstrate that the schema builds cleanly from nothing, point `.env` at an empty database and run:
-
-```bash
-npm run db:migrate
-npm run db:seed
-```
-
-Rollback support is available through `npm run db:rollback`.
+To verify a fresh database, point `.env` to an empty database and run `npm run db:migrate` followed by `npm run db:seed`.
