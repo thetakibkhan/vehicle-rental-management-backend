@@ -17,18 +17,26 @@ export interface RentalRouterDependencies {
   rentalService: RentalService
   tokenService: TokenService
 }
+interface RentalRequestBody {
+  vehicle_id: number
+  customer_name: string
+  customer_phone: string
+  start_date: string
+  end_date: string
+  status?: RentalStatus
+}
 interface IdInput {
   id: number
 }
 const statusValues = Object.values(RentalStatus)
-const rentalSchema = Joi.object<RentalInput>({
-  vehicleId: Joi.number().integer().positive().required(),
-  customerName: Joi.string().trim().min(1).max(120).required(),
-  customerPhone: Joi.string().trim().min(3).max(30).required(),
-  startDate: Joi.string()
+const rentalSchema = Joi.object<RentalRequestBody>({
+  vehicle_id: Joi.number().integer().positive().required(),
+  customer_name: Joi.string().trim().min(1).max(120).required(),
+  customer_phone: Joi.string().trim().min(3).max(30).required(),
+  start_date: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
-  endDate: Joi.string()
+  end_date: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
   status: Joi.string()
@@ -162,6 +170,13 @@ class RentalController {
       next(new AppError(422, 'VALIDATION_ERROR', 'Invalid rental request'))
       return undefined
     }
-    return result.value
+    return {
+      vehicleId: result.value.vehicle_id,
+      customerName: result.value.customer_name,
+      customerPhone: result.value.customer_phone,
+      startDate: result.value.start_date,
+      endDate: result.value.end_date,
+      status: result.value.status ?? RentalStatus.Booked,
+    }
   }
 }

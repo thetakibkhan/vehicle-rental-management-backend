@@ -15,11 +15,15 @@ export interface ReportRouterDependencies {
   reportService: ReportService
   tokenService: TokenService
 }
-const reportSchema = Joi.object<MonthlyReportRequest>({
+interface ReportQuery {
+  month: string
+  vehicle_id?: number
+}
+const reportSchema = Joi.object<ReportQuery>({
   month: Joi.string()
     .pattern(/^\d{4}-\d{2}$/)
     .required(),
-  vehicleId: Joi.number().integer().positive(),
+  vehicle_id: Joi.number().integer().positive(),
 }).unknown(false)
 export function createReportRouter(
   dependencies: ReportRouterDependencies,
@@ -49,10 +53,16 @@ class ReportController {
       next(new AppError(422, 'VALIDATION_ERROR', 'Invalid report query'))
       return
     }
+    const requestInput: MonthlyReportRequest = {
+      month: result.value.month,
+      ...(result.value.vehicle_id === undefined
+        ? {}
+        : { vehicleId: result.value.vehicle_id }),
+    }
     try {
       response
         .status(200)
-        .json(await this.reportService.getMonthlyRentalReport(result.value))
+        .json(await this.reportService.getMonthlyRentalReport(requestInput))
     } catch (error) {
       next(error)
     }
