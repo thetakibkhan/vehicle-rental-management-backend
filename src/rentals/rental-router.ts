@@ -5,17 +5,36 @@ import {
   type RequestHandler,
   type Response,
 } from 'express'
+import type { ParamsDictionary } from 'express-serve-static-core'
+import type { ParsedQs } from 'qs'
 import Joi from 'joi'
 
 import { createAuthenticationMiddleware } from '../auth/authentication-middleware.js'
 import type { TokenService } from '../auth/token-service.js'
 import { AppError } from '../common/errors/app-error.js'
-import { RentalStatus, type RentalInput } from './rental-repository.js'
-import type { RentalListRequest, RentalService } from './rental-service.js'
+import {
+  RentalStatus,
+  type Rental,
+  type RentalInput,
+} from './rental-repository.js'
+import type {
+  RentalListRequest,
+  RentalListResult,
+  RentalService,
+} from './rental-service.js'
 
 export interface RentalRouterDependencies {
   rentalService: RentalService
   tokenService: TokenService
+}
+interface RentalListQuery {
+  page: number
+  limit: number
+  vehicle_id?: number
+  status?: RentalStatus
+  date_from?: string
+  date_to?: string
+  search?: string
 }
 interface RentalRequestBody {
   vehicle_id: number
@@ -46,13 +65,13 @@ const rentalSchema = Joi.object<RentalRequestBody>({
 const idSchema = Joi.object<IdInput>({
   id: Joi.number().integer().positive().required(),
 }).unknown(false)
-const listSchema = Joi.object<RentalListRequest>({
+const listSchema = Joi.object<RentalListQuery>({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
-  vehicleId: Joi.number().integer().positive(),
+  vehicle_id: Joi.number().integer().positive(),
   status: Joi.string().valid(...statusValues),
-  dateFrom: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
-  dateTo: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+  date_from: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+  date_to: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
   search: Joi.string().trim().min(1).max(120),
 }).unknown(false)
 
@@ -69,21 +88,49 @@ export function createRentalRouter(
   router.delete('/:id', controller.delete)
   return router
 }
+type RentalHandler<ResponseBody, RequestBody = unknown> = RequestHandler<
+  ParamsDictionary,
+  ResponseBody,
+  RequestBody,
+  ParsedQs,
+  Record<string, never>
+>
+
 class RentalController {
   public constructor(private readonly rentalService: RentalService) {}
-  public readonly list: RequestHandler = (request, response, next): void => {
+  public readonly list: RentalHandler<RentalListResult> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleList(request, response, next)
   }
-  public readonly getById: RequestHandler = (request, response, next): void => {
+  public readonly getById: RentalHandler<Rental> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleGet(request, response, next)
   }
-  public readonly create: RequestHandler = (request, response, next): void => {
+  public readonly create: RentalHandler<Rental, RentalRequestBody> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleCreate(request, response, next)
   }
-  public readonly update: RequestHandler = (request, response, next): void => {
+  public readonly update: RentalHandler<Rental, RentalRequestBody> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleUpdate(request, response, next)
   }
-  public readonly delete: RequestHandler = (request, response, next): void => {
+  public readonly delete: RentalHandler<unknown> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleDelete(request, response, next)
   }
   private async handleList(
@@ -96,8 +143,27 @@ class RentalController {
       next(new AppError(422, 'VALIDATION_ERROR', 'Invalid rental query'))
       return
     }
+    const requestInput: RentalListRequest = {
+      page: result.value.page,
+      limit: result.value.limit,
+      ...(result.value.vehicle_id === undefined
+        ? {}
+        : { vehicleId: result.value.vehicle_id }),
+      ...(result.value.status === undefined
+        ? {}
+        : { status: result.value.status }),
+      ...(result.value.date_from === undefined
+        ? {}
+        : { dateFrom: result.value.date_from }),
+      ...(result.value.date_to === undefined
+        ? {}
+        : { dateTo: result.value.date_to }),
+      ...(result.value.search === undefined
+        ? {}
+        : { search: result.value.search }),
+    }
     try {
-      response.status(200).json(await this.rentalService.list(result.value))
+      response.status(200).json(await this.rentalService.list(requestInput))
     } catch (error) {
       next(error)
     }

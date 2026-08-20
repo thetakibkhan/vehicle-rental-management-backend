@@ -23,7 +23,12 @@ export function isAllowedPhotoMimeType(mimeType: string): boolean {
 }
 
 export class PhotoStorage {
-  public constructor(private readonly uploadDirectory: string) {}
+  private readonly uploadDirectory: string
+
+  public constructor(uploadDirectory: string) {
+    // Express response.sendFile requires an absolute path when serving photos.
+    this.uploadDirectory = path.resolve(uploadDirectory)
+  }
 
   public async save(photo: UploadedPhoto): Promise<string> {
     const extension = extensionByMimeType.get(photo.mimetype)

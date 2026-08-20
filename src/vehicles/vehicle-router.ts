@@ -5,16 +5,20 @@ import {
   type RequestHandler,
   type Response,
 } from 'express'
+import type { ParamsDictionary } from 'express-serve-static-core'
+import type { ParsedQs } from 'qs'
 import Joi from 'joi'
 
 import { createAuthenticationMiddleware } from '../auth/authentication-middleware.js'
 import type { TokenService } from '../auth/token-service.js'
 import { AppError } from '../common/errors/app-error.js'
+import type { Vehicle } from './vehicle-repository.js'
 import type { UploadedPhoto } from './photo-storage.js'
 import { uploadVehiclePhoto } from './upload-middleware.js'
 import type {
   VehicleInput,
   VehicleListRequest,
+  VehicleListResult,
   VehicleService,
 } from './vehicle-service.js'
 
@@ -62,30 +66,58 @@ export function createVehicleRouter(
   return router
 }
 
+type VehicleHandler<ResponseBody, RequestBody = unknown> = RequestHandler<
+  ParamsDictionary,
+  ResponseBody,
+  RequestBody,
+  ParsedQs,
+  Record<string, never>
+>
+
 class VehicleController {
   public constructor(private readonly vehicleService: VehicleService) {}
 
-  public readonly list: RequestHandler = (request, response, next): void => {
+  public readonly list: VehicleHandler<VehicleListResult> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleList(request, response, next)
   }
 
-  public readonly getById: RequestHandler = (request, response, next): void => {
+  public readonly getById: VehicleHandler<Vehicle> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleGetById(request, response, next)
   }
 
-  public readonly create: RequestHandler = (request, response, next): void => {
+  public readonly create: VehicleHandler<Vehicle, VehicleInput> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleCreate(request, response, next)
   }
 
-  public readonly update: RequestHandler = (request, response, next): void => {
+  public readonly update: VehicleHandler<Vehicle, VehicleInput> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleUpdate(request, response, next)
   }
 
-  public readonly delete: RequestHandler = (request, response, next): void => {
+  public readonly delete: VehicleHandler<unknown> = (
+    request,
+    response,
+    next,
+  ): void => {
     void this.handleDelete(request, response, next)
   }
 
-  public readonly getPhoto: RequestHandler = (
+  public readonly getPhoto: VehicleHandler<unknown> = (
     request,
     response,
     next,
@@ -140,6 +172,10 @@ class VehicleController {
   ): Promise<void> {
     const input = this.getValidatedVehicleInput(request.body, next)
     if (input === undefined) {
+      return
+    }
+    if (request.file === undefined) {
+      next(new AppError(422, 'PHOTO_REQUIRED', 'Vehicle photo is required'))
       return
     }
 

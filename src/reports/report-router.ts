@@ -5,11 +5,15 @@ import {
   type RequestHandler,
   type Response,
 } from 'express'
+import type { ParamsDictionary } from 'express-serve-static-core'
+import type { ParsedQs } from 'qs'
 import Joi from 'joi'
 import { createAuthenticationMiddleware } from '../auth/authentication-middleware.js'
 import type { TokenService } from '../auth/token-service.js'
 import { AppError } from '../common/errors/app-error.js'
 import type { MonthlyReportRequest, ReportService } from './report-service.js'
+import { toMonthlyReportResponse } from './report-response.js'
+import type { MonthlyReportResponse } from './report-response.js'
 
 export interface ReportRouterDependencies {
   reportService: ReportService
@@ -34,15 +38,20 @@ export function createReportRouter(
   router.get('/rentals', controller.getMonthlyRentalReport)
   return router
 }
+type ReportHandler<ResponseBody> = RequestHandler<
+  ParamsDictionary,
+  ResponseBody,
+  unknown,
+  ParsedQs,
+  Record<string, never>
+>
+
 class ReportController {
   public constructor(private readonly reportService: ReportService) {}
-  public readonly getMonthlyRentalReport: RequestHandler = (
-    request,
-    response,
-    next,
-  ): void => {
-    void this.handleMonthlyReport(request, response, next)
-  }
+  public readonly getMonthlyRentalReport: ReportHandler<MonthlyReportResponse> =
+    (request, response, next): void => {
+      void this.handleMonthlyReport(request, response, next)
+    }
   private async handleMonthlyReport(
     request: Request,
     response: Response,
@@ -60,9 +69,9 @@ class ReportController {
         : { vehicleId: result.value.vehicle_id }),
     }
     try {
-      response
-        .status(200)
-        .json(await this.reportService.getMonthlyRentalReport(requestInput))
+      const report =
+        await this.reportService.getMonthlyRentalReport(requestInput)
+      response.status(200).json(toMonthlyReportResponse(report))
     } catch (error) {
       next(error)
     }

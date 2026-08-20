@@ -1,7 +1,6 @@
 import type { Knex } from 'knex'
 
 import {
-  activeRentalStatuses,
   type LockedVehicle,
   type Rental,
   type RentalInput,
@@ -83,14 +82,33 @@ export class KnexRentalRepository implements RentalRepository {
     },
     transaction: Knex.Transaction,
   ): Promise<boolean> {
-    const query = transaction('rentals')
-      .where('vehicle_id', input.vehicleId)
-      .whereIn('status', activeRentalStatuses)
-      .where('start_date', '<=', input.endDate)
-      .where('end_date', '>=', input.startDate)
-    if (input.excludedRentalId !== undefined)
-      query.whereNot('id', input.excludedRentalId)
-    return (await query.first()) !== undefined
+    const exclusionSql =
+      input.excludedRentalId === undefined ? '' : 'AND id <> ?::int'
+    const bindings = [
+      String(input.vehicleId),
+      'booked',
+      'ongoing',
+      input.endDate,
+      input.startDate,
+      ...(input.excludedRentalId === undefined
+        ? []
+        : [String(input.excludedRentalId)]),
+    ]
+    const result = await transaction.raw<{ rows: { exists: boolean }[] }>(
+      `
+        SELECT EXISTS (
+          SELECT 1
+          FROM rentals
+          WHERE vehicle_id = ?::int
+            AND status IN (?, ?)
+            AND start_date <= ?::date
+            AND end_date >= ?::date
+            ${exclusionSql}
+        ) AS exists
+      `,
+      bindings,
+    )
+    return result.rows[0]?.exists ?? false
   }
   public async create(
     input: RentalInput,
