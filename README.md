@@ -58,15 +58,15 @@ Authorization: Bearer <token>
 
 ## API endpoints
 
-| Method           | Endpoint                                     | Notes                                                                        |
-| ---------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| POST             | `/auth/login`                                | Staff login                                                                  |
-| GET, POST        | `/vehicles`                                  | List or create a vehicle; POST uses multipart form-data and optional `photo` |
-| GET, PUT, DELETE | `/vehicles/:id`                              | Retrieve, update, or soft-delete a vehicle                                   |
-| GET              | `/vehicles/:id/photo`                        | Authenticated photo download                                                 |
-| GET, POST        | `/rentals`                                   | List or create a rental                                                      |
-| GET, PUT, DELETE | `/rentals/:id`                               | Retrieve, update, or hard-delete a rental                                    |
-| GET              | `/reports/rentals?month=YYYY-MM&vehicle_id=` | Monthly report; `vehicle_id` is optional                                     |
+| Method           | Endpoint                                     | Notes                                                                         |
+| ---------------- | -------------------------------------------- | ----------------------------------------------------------------------------- |
+| POST             | `/auth/login`                                | Staff login                                                                   |
+| GET, POST        | `/vehicles`                                  | List or create a vehicle; POST uses multipart form-data with required `photo` |
+| GET, PUT, DELETE | `/vehicles/:id`                              | Retrieve, update, or soft-delete a vehicle                                    |
+| GET              | `/vehicles/:id/photo`                        | Authenticated photo download                                                  |
+| GET, POST        | `/rentals`                                   | List or create a rental                                                       |
+| GET, PUT, DELETE | `/rentals/:id`                               | Retrieve, update, or hard-delete a rental                                     |
+| GET              | `/reports/rentals?month=YYYY-MM&vehicle_id=` | Monthly report; `vehicle_id` is optional                                      |
 
 Rental create/update bodies use `vehicle_id`, `customer_name`, `customer_phone`, `start_date`, `end_date`, and optional `status`. The backend always calculates `total_amount`.
 
