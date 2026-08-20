@@ -9,4 +9,4 @@
 - [x] Use explicit public snake-case rental/report contracts
 - [x] Use explicit request/response/handler types on every route
 - [x] Keep overlap detection in readable parameterized SQL
-- [ ] Configure the public Git remote and push the final repository
+- [x] Configure the public Git remote and push the final repository
