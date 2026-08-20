@@ -54,16 +54,13 @@ export class RentalService {
         input.vehicleId,
         transaction,
       )
-      await this.assertAvailable(input, transaction)
-      return this.rentalRepository.create(
-        input,
-        calculateRentalAmount(
-          vehicle.dailyRate,
-          input.startDate,
-          input.endDate,
-        ),
-        transaction,
+      const totalAmount = calculateRentalAmount(
+        vehicle.dailyRate,
+        input.startDate,
+        input.endDate,
       )
+      await this.assertAvailable(input, transaction)
+      return this.rentalRepository.create(input, totalAmount, transaction)
     })
   }
   public async update(id: number, input: RentalInput): Promise<Rental> {
@@ -82,15 +79,16 @@ export class RentalService {
         input.vehicleId,
         transaction,
       )
+      const totalAmount = calculateRentalAmount(
+        vehicle.dailyRate,
+        input.startDate,
+        input.endDate,
+      )
       await this.assertAvailable(input, transaction, id)
       const rental = await this.rentalRepository.update(
         id,
         input,
-        calculateRentalAmount(
-          vehicle.dailyRate,
-          input.startDate,
-          input.endDate,
-        ),
+        totalAmount,
         transaction,
       )
       if (rental === undefined)

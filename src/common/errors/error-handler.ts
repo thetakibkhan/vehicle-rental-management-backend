@@ -35,8 +35,26 @@ export const errorHandler: ErrorRequestHandler = (
     return
   }
 
+  if (isMalformedJsonError(error)) {
+    response.status(400).json({
+      success: false,
+      error: { code: 'INVALID_JSON', message: 'Malformed JSON request body' },
+    })
+    return
+  }
+
   response.status(500).json({
     success: false,
     error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },
   })
+}
+
+function isMalformedJsonError(error: unknown): boolean {
+  return (
+    error instanceof SyntaxError &&
+    'status' in error &&
+    error.status === 400 &&
+    'type' in error &&
+    error.type === 'entity.parse.failed'
+  )
 }

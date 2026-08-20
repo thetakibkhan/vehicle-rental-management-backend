@@ -1,4 +1,5 @@
 import { AppError } from '../common/errors/app-error.js'
+import { isValidYearMonth } from '../common/validation/date-validation.js'
 import type {
   ReportRepository,
   VehicleRentalReportRow,
@@ -40,12 +41,10 @@ export function getMonthBounds(month: string): {
   monthEnd: string
 } {
   const parts = /^(\d{4})-(\d{2})$/u.exec(month)
-  if (parts === null)
+  if (parts === null || !isValidYearMonth(month))
     throw new AppError(422, 'VALIDATION_ERROR', 'Invalid report month')
   const year = Number(parts[1])
   const monthNumber = Number(parts[2])
-  if (monthNumber < 1 || monthNumber > 12)
-    throw new AppError(422, 'VALIDATION_ERROR', 'Invalid report month')
   const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
   return {
     monthStart: `${month}-01`,

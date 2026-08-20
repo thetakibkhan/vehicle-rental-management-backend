@@ -12,6 +12,7 @@ import Joi from 'joi'
 import { createAuthenticationMiddleware } from '../auth/authentication-middleware.js'
 import type { TokenService } from '../auth/token-service.js'
 import { AppError } from '../common/errors/app-error.js'
+import { isValidDateOnly } from '../common/validation/date-validation.js'
 import {
   RentalStatus,
   type Rental,
@@ -48,16 +49,15 @@ interface IdInput {
   id: number
 }
 const statusValues = Object.values(RentalStatus)
+const dateOnlySchema = Joi.string().custom((value: string, helpers) =>
+  isValidDateOnly(value) ? value : helpers.error('any.invalid'),
+)
 const rentalSchema = Joi.object<RentalRequestBody>({
   vehicle_id: Joi.number().integer().positive().required(),
   customer_name: Joi.string().trim().min(1).max(120).required(),
   customer_phone: Joi.string().trim().min(3).max(30).required(),
-  start_date: Joi.string()
-    .pattern(/^\d{4}-\d{2}-\d{2}$/)
-    .required(),
-  end_date: Joi.string()
-    .pattern(/^\d{4}-\d{2}-\d{2}$/)
-    .required(),
+  start_date: dateOnlySchema.required(),
+  end_date: dateOnlySchema.required(),
   status: Joi.string()
     .valid(...statusValues)
     .default(RentalStatus.Booked),
@@ -70,8 +70,8 @@ const listSchema = Joi.object<RentalListQuery>({
   limit: Joi.number().integer().min(1).max(100).default(20),
   vehicle_id: Joi.number().integer().positive(),
   status: Joi.string().valid(...statusValues),
-  date_from: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
-  date_to: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
+  date_from: dateOnlySchema,
+  date_to: dateOnlySchema,
   search: Joi.string().trim().min(1).max(120),
 }).unknown(false)
 
