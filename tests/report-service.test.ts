@@ -40,4 +40,15 @@ describe('ReportService', () => {
       highestRevenueVehicle: rows[0],
     })
   })
+
+  it('rejects a report month with year zero', async () => {
+    await expect(
+      new ReportService(new InMemoryReportRepository()).getMonthlyRentalReport({
+        month: '0000-01',
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'VALIDATION_ERROR',
+    })
+  })
 })

@@ -23,4 +23,17 @@ describe('createApp', () => {
       error: { code: 'NOT_FOUND', message: 'Route not found' },
     })
   })
+
+  it('returns a client error for malformed JSON', async () => {
+    const response = await request(createApp())
+      .post('/missing')
+      .set('Content-Type', 'application/json')
+      .send('{"broken":')
+
+    expect(response.status).toBe(400)
+    expect(response.body).toEqual({
+      success: false,
+      error: { code: 'INVALID_JSON', message: 'Malformed JSON request body' },
+    })
+  })
 })
